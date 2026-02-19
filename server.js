@@ -11,16 +11,25 @@ const resolvers = require('./graphql/resolvers');
 const MONGODB_URI =
     'mongodb+srv://luunguyenminhtriet021025_db_user:fellix021025@assignment1.kppwnc5.mongodb.net/comp3133_101542519_assignment1?retryWrites=true&w=majority';
 
-const PORT = process.env.PORT || 4000;
+const app = express();
 
-async function startServer() {
-    const app = express();
+// Parse JSON bodies globally BEFORE Apollo middleware
+app.use(cors());
+app.use(express.json({ limit: '10mb' }));
 
-    // Parse JSON bodies globally BEFORE Apollo middleware
-    app.use(cors());
-    app.use(express.json({ limit: '10mb' }));
+// Cache the server startup promise so it only runs once
+let serverStarted = false;
 
-    // Create Apollo Server
+async function startApollo() {
+    if (serverStarted) return;
+
+    // Connect to MongoDB (reuse connection if already connected)
+    if (mongoose.connection.readyState !== 1) {
+        await mongoose.connect(MONGODB_URI);
+        console.log('MongoDB connected successfully');
+    }
+
+    // Create and start Apollo Server
     const server = new ApolloServer({
         typeDefs,
         resolvers,
@@ -33,29 +42,31 @@ async function startServer() {
         },
     });
 
-    // Start Apollo Server
     await server.start();
 
     // Apply Apollo middleware
     app.use('/graphql', expressMiddleware(server));
 
-    // Connect to MongoDB
-    try {
-        await mongoose.connect(MONGODB_URI);
-        console.log('MongoDB connected successfully');
-    } catch (error) {
-        console.error('MongoDB connection error:', error.message);
-        process.exit(1);
-    }
-
-    // Start Express server
-    app.listen(PORT, () => {
-        console.log(`Server running at http://localhost:${PORT}/graphql`);
-    });
-
-    return app;
+    serverStarted = true;
 }
 
-const app = startServer();
+// Initialize before handling requests
+const initPromise = startApollo();
+
+// Middleware to wait for initialization
+app.use(async (req, res, next) => {
+    await initPromise;
+    next();
+});
+
+// Local development
+if (process.env.NODE_ENV !== 'production') {
+    const PORT = process.env.PORT || 4000;
+    initPromise.then(() => {
+        app.listen(PORT, () => {
+            console.log(`Server running at http://localhost:${PORT}/graphql`);
+        });
+    });
+}
 
 module.exports = app;
