@@ -9,12 +9,25 @@ const JWT_SECRET = 'comp3133_assignment1_secret_key';
 
 // Cloudinary configuration
 cloudinary.config({
-    cloud_name: 'dxvhsf1ey',
-    api_key: '298838644671498',
-    api_secret: 'REPLACE_WITH_YOUR_CLOUDINARY_API_SECRET',
+    cloud_name: 'dulpqdnti',
+    api_key: '443447755986753',
+    api_secret: 'JXTTse2rmOsTxP7IrTjcXdacMMQ',
 });
 
 const resolvers = {
+    // Format date fields for User type
+    User: {
+        created_at: (parent) => parent.created_at ? new Date(parent.created_at).toISOString().split('T')[0] : null,
+        updated_at: (parent) => parent.updated_at ? new Date(parent.updated_at).toISOString().split('T')[0] : null,
+    },
+
+    // Format date fields for Employee type
+    Employee: {
+        date_of_joining: (parent) => parent.date_of_joining ? new Date(parent.date_of_joining).toISOString().split('T')[0] : null,
+        created_at: (parent) => parent.created_at ? new Date(parent.created_at).toISOString().split('T')[0] : null,
+        updated_at: (parent) => parent.updated_at ? new Date(parent.updated_at).toISOString().split('T')[0] : null,
+    },
+
     Query: {
         // Login - Allow user to access the system
         login: async (_, { usernameOrEmail, password }) => {
