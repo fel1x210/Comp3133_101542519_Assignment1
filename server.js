@@ -12,61 +12,59 @@ const MONGODB_URI =
     'mongodb+srv://luunguyenminhtriet021025_db_user:fellix021025@assignment1.kppwnc5.mongodb.net/comp3133_101542519_assignment1?retryWrites=true&w=majority';
 
 const app = express();
-
-// Parse JSON bodies globally BEFORE Apollo middleware
 app.use(cors());
 app.use(express.json({ limit: '10mb' }));
 
-// Cache the server startup promise so it only runs once
-let serverStarted = false;
+// Create Apollo Server
+const server = new ApolloServer({
+    typeDefs,
+    resolvers,
+    formatError: (error) => ({
+        message: error.message,
+        code: error.extensions?.code || 'INTERNAL_SERVER_ERROR',
+        path: error.path,
+    }),
+});
 
-async function startApollo() {
-    if (serverStarted) return;
+// Single startup promise (runs once, cached)
+let startupPromise = null;
 
-    // Connect to MongoDB (reuse connection if already connected)
-    if (mongoose.connection.readyState !== 1) {
-        await mongoose.connect(MONGODB_URI);
-        console.log('MongoDB connected successfully');
+function ensureStarted() {
+    if (!startupPromise) {
+        startupPromise = (async () => {
+            // Connect to MongoDB
+            if (mongoose.connection.readyState !== 1) {
+                await mongoose.connect(MONGODB_URI);
+                console.log('MongoDB connected successfully');
+            }
+            // Start Apollo
+            await server.start();
+            // Mount GraphQL endpoint
+            app.use('/graphql', expressMiddleware(server));
+        })();
     }
-
-    // Create and start Apollo Server
-    const server = new ApolloServer({
-        typeDefs,
-        resolvers,
-        formatError: (error) => {
-            return {
-                message: error.message,
-                code: error.extensions?.code || 'INTERNAL_SERVER_ERROR',
-                path: error.path,
-            };
-        },
-    });
-
-    await server.start();
-
-    // Apply Apollo middleware
-    app.use('/graphql', expressMiddleware(server));
-
-    serverStarted = true;
+    return startupPromise;
 }
 
-// Initialize before handling requests
-const initPromise = startApollo();
-
-// Middleware to wait for initialization
-app.use(async (req, res, next) => {
-    await initPromise;
-    next();
+// Root route
+app.get('/', (req, res) => {
+    res.json({ message: 'Employee Management System API', endpoint: '/graphql' });
 });
+
+// For Vercel: wrap in async handler
+const handler = async (req, res) => {
+    await ensureStarted();
+    return app(req, res);
+};
 
 // Local development
 if (process.env.NODE_ENV !== 'production') {
-    const PORT = process.env.PORT || 4000;
-    initPromise.then(() => {
+    ensureStarted().then(() => {
+        const PORT = process.env.PORT || 4000;
         app.listen(PORT, () => {
             console.log(`Server running at http://localhost:${PORT}/graphql`);
         });
     });
 }
 
-module.exports = app;
+module.exports = handler;
