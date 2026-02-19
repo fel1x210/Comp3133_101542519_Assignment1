@@ -67,20 +67,25 @@ const sandboxHtml = `<!DOCTYPE html>
 </body>
 </html>`;
 
-// Root route
-app.get('/', (req, res) => {
-    res.setHeader('Content-Type', 'text/html');
-    res.end(sandboxHtml);
-});
-
 // For Vercel: wrap in async handler
 const handler = async (req, res) => {
+    // Serve Apollo Sandbox UI on root or /graphql GET
+    if (req.method === 'GET' && (req.url === '/' || req.url === '/graphql')) {
+        res.setHeader('Content-Type', 'text/html');
+        return res.end(sandboxHtml);
+    }
     await ensureStarted();
     return app(req, res);
 };
 
 // Local development
 if (process.env.NODE_ENV !== 'production') {
+    // Also register root route for local dev
+    app.get('/', (req, res) => {
+        res.setHeader('Content-Type', 'text/html');
+        res.end(sandboxHtml);
+    });
+
     ensureStarted().then(() => {
         const PORT = process.env.PORT || 4000;
         app.listen(PORT, () => {
