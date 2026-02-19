@@ -51,9 +51,23 @@ function ensureStarted() {
     return startupPromise;
 }
 
-// Root route
+// Root route - serve embedded Apollo Sandbox
 app.get('/', (req, res) => {
-    res.json({ message: 'Employee Management System API', endpoint: '/graphql' });
+    res.send(`
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>Employee Management System - GraphQL API</title>
+        <style>body { margin: 0; overflow: hidden; } #sandbox { height: 100vh; width: 100vw; }</style>
+    </head>
+    <body>
+        <div id="sandbox"></div>
+        <script src="https://embeddable-sandbox.cdn.apollographql.com/_latest/embeddable-sandbox.umd.production.min.js"></script>
+        <script>
+            new window.EmbeddedSandbox({ target: '#sandbox', initialEndpoint: window.location.origin + '/graphql' });
+        </script>
+    </body>
+    </html>`);
 });
 
 // For Vercel: wrap in async handler
