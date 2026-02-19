@@ -1,5 +1,6 @@
 const express = require('express');
 const { ApolloServer } = require('@apollo/server');
+const { ApolloServerPluginLandingPageLocalDefault } = require('@apollo/server/plugin/landingPage/default');
 const { expressMiddleware } = require('@apollo/server/express4');
 const mongoose = require('mongoose');
 const cors = require('cors');
@@ -19,6 +20,10 @@ app.use(express.json({ limit: '10mb' }));
 const server = new ApolloServer({
     typeDefs,
     resolvers,
+    introspection: true,
+    plugins: [
+        ApolloServerPluginLandingPageLocalDefault({ embed: true }),
+    ],
     formatError: (error) => ({
         message: error.message,
         code: error.extensions?.code || 'INTERNAL_SERVER_ERROR',
