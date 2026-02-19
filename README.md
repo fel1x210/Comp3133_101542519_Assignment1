@@ -52,4 +52,4 @@ Import `COMP3133_Assignment1.postman_collection.json` into Postman to test all e
 
 ## Deployment
 
-Hosted on Vercel: [Live URL]([https://comp3133-101542519-assignment1.vercel.app](http://comp3133-101542519-assignment1-g5q2.vercel.app/))
+Hosted on Vercel: http://comp3133-101542519-assignment1-g5q2.vercel.app/
